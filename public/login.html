@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>404Buddy — Connexion</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body class="auth-page">
+
+  <div class="auth-card">
+    <div class="auth-logo">
+      <span class="logo-icon">💬</span>
+      <h1>404Buddy</h1>
+      <p class="auth-tagline">Le chat qui existe quand même</p>
+    </div>
+
+    <div class="auth-tabs">
+      <button class="tab-btn active" data-tab="login">Connexion</button>
+      <button class="tab-btn" data-tab="register">Inscription</button>
+    </div>
+
+    <!-- Login form -->
+    <form id="loginForm" class="auth-form active" novalidate>
+      <div class="form-group">
+        <label for="loginUsername">Pseudo</label>
+        <input type="text" id="loginUsername" placeholder="ton_pseudo" autocomplete="username" />
+      </div>
+      <div class="form-group">
+        <label for="loginPassword">Mot de passe</label>
+        <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password" />
+      </div>
+      <p class="form-error" id="loginError"></p>
+      <button type="submit" class="btn-primary" id="loginBtn">Se connecter</button>
+    </form>
+
+    <!-- Register form -->
+    <form id="registerForm" class="auth-form" novalidate>
+      <div class="form-group">
+        <label for="regUsername">Pseudo <span class="hint">(2–24 caractères)</span></label>
+        <input type="text" id="regUsername" placeholder="ton_pseudo" autocomplete="username" />
+      </div>
+      <div class="form-group">
+        <label for="regPassword">Mot de passe <span class="hint">(min 4 caractères)</span></label>
+        <input type="password" id="regPassword" placeholder="••••••••" autocomplete="new-password" />
+      </div>
+      <div class="form-group">
+        <label>Avatar <span class="hint">(optionnel)</span></label>
+        <label class="file-label" for="regAvatar">
+          <span id="fileLabel">Choisir une image</span>
+        </label>
+        <input type="file" id="regAvatar" accept="image/*" />
+      </div>
+      <p class="form-error" id="registerError"></p>
+      <button type="submit" class="btn-primary" id="registerBtn">Créer mon compte</button>
+    </form>
+  </div>
+
+  <script src="js/login.js"></script>
+</body>
+</html>

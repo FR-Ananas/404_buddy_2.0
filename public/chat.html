@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>404Buddy</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body class="chat-page">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <span class="logo-text">💬 404Buddy</span>
+      <button class="icon-btn" id="themeToggle" title="Changer le thème">🌙</button>
+    </div>
+
+    <div class="sidebar-section">
+      <h3 class="sidebar-label">Salons</h3>
+      <ul class="room-list" id="roomList"></ul>
+    </div>
+
+    <div class="sidebar-section">
+      <h3 class="sidebar-label">Connectés <span id="onlineCount" class="badge">0</span></h3>
+      <ul class="user-list" id="userList"></ul>
+    </div>
+
+    <div class="sidebar-footer">
+      <img class="self-avatar" id="selfAvatar" src="" alt="" />
+      <span class="self-name" id="selfName">...</span>
+      <button class="icon-btn danger" id="logoutBtn" title="Se déconnecter">⏻</button>
+    </div>
+  </aside>
+
+  <!-- Main area -->
+  <div class="chat-layout">
+    <header class="chat-header">
+      <button class="icon-btn sidebar-toggle" id="sidebarToggle" title="Menu">☰</button>
+      <div class="chat-header-info">
+        <span class="room-hash">#</span>
+        <span id="currentRoomName">general</span>
+        <span class="room-desc" id="currentRoomDesc"></span>
+      </div>
+    </header>
+
+    <div class="messages" id="messages"></div>
+
+    <div class="typing-indicator" id="typingIndicator"></div>
+
+    <div class="message-input-bar">
+      <button class="icon-btn attach-btn" id="attachBtn" title="Envoyer une image">📎</button>
+      <input type="file" id="fileInput" accept="image/*" style="display:none" />
+      <input
+        type="text"
+        id="msgInput"
+        placeholder="Message dans #general..."
+        autocomplete="off"
+        maxlength="2000"
+      />
+      <button class="send-btn" id="sendBtn">Envoyer</button>
+    </div>
+  </div>
+
+  <!-- Image preview lightbox -->
+  <div class="lightbox" id="lightbox" style="display:none">
+    <img id="lightboxImg" src="" alt="preview" />
+    <button class="lightbox-close" onclick="document.getElementById('lightbox').style.display='none'">✕</button>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="js/chat.js"></script>
+</body>
+</html>

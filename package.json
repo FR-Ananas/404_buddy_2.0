@@ -1,0 +1,18 @@
+{
+  "name": "404buddy",
+  "version": "2.0.0",
+  "description": "404Buddy — real-time multi-room chat app",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^9.4.3",
+    "connect-sqlite3": "^0.9.13",
+    "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "socket.io": "^4.7.2"
+  }
+}
