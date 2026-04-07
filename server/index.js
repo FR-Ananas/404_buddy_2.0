@@ -17,8 +17,10 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 // --- Session setup ---
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, "..");
+
 const sessionMiddleware = session({
-  store: new SQLiteStore({ db: "sessions.db", dir: path.join(__dirname, "..") }),
+  store: new SQLiteStore({ db: "sessions.db", dir: DATA_DIR }),
   secret: process.env.SESSION_SECRET || "404buddy_secret",
   resave: false,
   saveUninitialized: false,

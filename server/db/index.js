@@ -1,7 +1,10 @@
 const Database = require("better-sqlite3");
 const path = require("path");
 
-const DB_PATH = path.join(__dirname, "../../data.db");
+// DATA_DIR allows pointing to a persistent volume on platforms like Render.
+// Falls back to the project root for local development.
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, "../..");
+const DB_PATH = path.join(DATA_DIR, "data.db");
 
 const db = new Database(DB_PATH);
 

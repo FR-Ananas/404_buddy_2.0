@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: 404buddy
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SESSION_SECRET
+        generateValue: true   # Render génère une valeur aléatoire automatiquement
+      - key: DATA_DIR
+        value: /var/data
+    disk:
+      name: 404buddy-data
+      mountPath: /var/data
+      sizeGB: 1
