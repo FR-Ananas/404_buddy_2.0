@@ -166,7 +166,8 @@ input[type="file"] { display: none; }
    ============================ */
 .chat-page {
   display: flex;
-  height: 100vh;
+  height: 100vh;        /* fallback */
+  height: 100dvh;       /* iOS 15.4+ : s'ajuste quand le clavier s'ouvre */
   overflow: hidden;
 }
 
@@ -460,6 +461,8 @@ input[type="file"] { display: none; }
   align-items: center;
   gap: .5rem;
   padding: .875rem 1rem;
+  /* safe-area-inset-bottom : espace pour la barre home iPhone */
+  padding-bottom: calc(.875rem + env(safe-area-inset-bottom, 0px));
   background: var(--bg-card);
   border-top: 1px solid var(--border);
 }

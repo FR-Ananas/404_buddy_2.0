@@ -310,19 +310,50 @@ msgInput.addEventListener("input", () => {
 // ============================
 // Image upload
 // ============================
+
+/**
+ * Compress + convert any image (including HEIC from iPhone) to JPEG via Canvas.
+ * Max width 1280px, quality 82% — keeps files well under 1 MB.
+ */
+function compressImage(file) {
+  return new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const MAX_WIDTH = 1280;
+      let { width, height } = img;
+      if (width > MAX_WIDTH) {
+        height = Math.round(height * MAX_WIDTH / width);
+        width = MAX_WIDTH;
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL("image/jpeg", 0.82));
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("Format d'image non supporté"));
+    };
+    img.src = objectUrl;
+  });
+}
+
 attachBtn.addEventListener("click", () => fileInput.click());
 
-fileInput.addEventListener("change", () => {
+fileInput.addEventListener("change", async () => {
   const file = fileInput.files[0];
   if (!file) return;
-  if (!file.type.startsWith("image/")) return;
-
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    socket.emit("send_message", { content: e.target.result, type: "image" });
-  };
-  reader.readAsDataURL(file);
   fileInput.value = "";
+
+  try {
+    const compressed = await compressImage(file);
+    socket.emit("send_message", { content: compressed, type: "image" });
+  } catch (err) {
+    console.error("Erreur envoi image :", err);
+  }
 });
 
 // ============================
