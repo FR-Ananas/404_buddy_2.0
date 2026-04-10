@@ -16,7 +16,10 @@
     </div>
 
     <div class="sidebar-section">
-      <h3 class="sidebar-label">Salons</h3>
+      <div class="sidebar-label-row">
+        <h3 class="sidebar-label">Salons</h3>
+        <button class="icon-btn admin-only" id="addRoomBtn" title="Créer un salon" style="display:none">＋</button>
+      </div>
       <ul class="room-list" id="roomList"></ul>
     </div>
 
@@ -26,7 +29,7 @@
     </div>
 
     <div class="sidebar-footer">
-      <img class="self-avatar" id="selfAvatar" src="" alt="" />
+      <img class="self-avatar" id="selfAvatar" src="" alt="" style="display:none" />
       <span class="self-name" id="selfName">...</span>
       <button class="icon-btn danger" id="logoutBtn" title="Se déconnecter">⏻</button>
     </div>
@@ -38,33 +41,52 @@
       <button class="icon-btn sidebar-toggle" id="sidebarToggle" title="Menu">☰</button>
       <div class="chat-header-info">
         <span class="room-hash">#</span>
-        <span id="currentRoomName">general</span>
+        <span id="currentRoomName">…</span>
         <span class="room-desc" id="currentRoomDesc"></span>
       </div>
     </header>
 
-    <div class="messages" id="messages"></div>
+    <!-- Room loader (visible while joining) -->
+    <div class="room-loader" id="roomLoader">
+      <div class="spinner"></div>
+      <p>Chargement du salon…</p>
+    </div>
 
+    <div class="messages" id="messages" style="display:none"></div>
     <div class="typing-indicator" id="typingIndicator"></div>
 
     <div class="message-input-bar">
       <button class="icon-btn attach-btn" id="attachBtn" title="Envoyer une image">📎</button>
       <input type="file" id="fileInput" accept="image/*" style="display:none" />
-      <input
-        type="text"
-        id="msgInput"
-        placeholder="Message dans #general..."
-        autocomplete="off"
-        maxlength="2000"
-      />
+      <input type="text" id="msgInput" placeholder="Message…" autocomplete="off" maxlength="2000" />
       <button class="send-btn" id="sendBtn">Envoyer</button>
     </div>
   </div>
 
-  <!-- Image preview lightbox -->
+  <!-- Lightbox -->
   <div class="lightbox" id="lightbox" style="display:none">
     <img id="lightboxImg" src="" alt="preview" />
     <button class="lightbox-close" onclick="document.getElementById('lightbox').style.display='none'">✕</button>
+  </div>
+
+  <!-- Modal : créer un salon (admin) -->
+  <div class="modal-overlay" id="createRoomModal" style="display:none">
+    <div class="modal-card">
+      <h3>Nouveau salon</h3>
+      <div class="form-group">
+        <label for="newRoomName">Nom <span class="hint">(minuscules, chiffres, tirets)</span></label>
+        <input type="text" id="newRoomName" placeholder="mon-salon" maxlength="32" />
+      </div>
+      <div class="form-group">
+        <label for="newRoomDesc">Description <span class="hint">(optionnel)</span></label>
+        <input type="text" id="newRoomDesc" placeholder="Description courte" maxlength="80" />
+      </div>
+      <p class="form-error" id="createRoomError"></p>
+      <div class="modal-actions">
+        <button class="btn-primary" id="createRoomBtn">Créer</button>
+        <button class="btn-secondary" id="cancelRoomBtn">Annuler</button>
+      </div>
+    </div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>

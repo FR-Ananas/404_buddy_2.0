@@ -1,13 +1,11 @@
 const initSqlJs = require("sql.js");
 
-// In-memory SQLite via WebAssembly (no native compilation needed).
-// Data is ephemeral — resets on each restart. Fine for free-tier hosting.
-
+// In-memory SQLite via WebAssembly — ephemeral, resets on restart.
 let db;
 
 /**
- * Wrap a SQL string into an object with the same .get() / .all() / .run()
- * interface as better-sqlite3, so the rest of the codebase doesn't change.
+ * Wraps a SQL string into a better-sqlite3-compatible interface
+ * (.get / .all / .run) so the rest of the codebase stays unchanged.
  */
 function stmt(sql) {
   return {
@@ -44,6 +42,8 @@ async function initDb() {
       username   TEXT    NOT NULL UNIQUE COLLATE NOCASE,
       password   TEXT    NOT NULL,
       avatar     TEXT,
+      color      TEXT,
+      is_admin   INTEGER NOT NULL DEFAULT 0,
       created_at TEXT    NOT NULL DEFAULT (datetime('now'))
     );
 
@@ -51,48 +51,73 @@ async function initDb() {
       id          INTEGER PRIMARY KEY AUTOINCREMENT,
       name        TEXT    NOT NULL UNIQUE,
       description TEXT    NOT NULL DEFAULT '',
+      protected   INTEGER NOT NULL DEFAULT 0,
       created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
     );
 
     CREATE TABLE IF NOT EXISTS messages (
       id         INTEGER PRIMARY KEY AUTOINCREMENT,
-      room_id    INTEGER NOT NULL REFERENCES rooms(id),
-      user_id    INTEGER NOT NULL REFERENCES users(id),
+      room_id    INTEGER NOT NULL,
+      user_id    INTEGER NOT NULL,
       content    TEXT    NOT NULL,
       type       TEXT    NOT NULL DEFAULT 'text',
       created_at TEXT    NOT NULL DEFAULT (datetime('now'))
     );
   `);
 
-  // Seed default rooms
-  db.run("INSERT OR IGNORE INTO rooms (name, description) VALUES (?, ?)", ["general", "Le salon principal"]);
-  db.run("INSERT OR IGNORE INTO rooms (name, description) VALUES (?, ?)", ["random", "Tout et n'importe quoi"]);
-  db.run("INSERT OR IGNORE INTO rooms (name, description) VALUES (?, ?)", ["images", "Partage de photos"]);
+  // Seed protected default rooms (cannot be deleted)
+  db.run("INSERT OR IGNORE INTO rooms (name, description, protected) VALUES (?, ?, 1)",
+    ["general", "Le salon principal"]);
+  db.run("INSERT OR IGNORE INTO rooms (name, description, protected) VALUES (?, ?, 1)",
+    ["random", "Tout et n'importe quoi"]);
+  db.run("INSERT OR IGNORE INTO rooms (name, description, protected) VALUES (?, ?, 1)",
+    ["images", "Partage de photos"]);
 }
 
-// --- Prepared statement objects (same API as before) ---
+async function initAdmin() {
+  const bcrypt = require("bcryptjs");
+  const adminPassword = process.env.ADMIN_PASSWORD;
+
+  if (!adminPassword) {
+    console.warn("⚠️  ADMIN_PASSWORD non défini — compte admin '404' non créé.");
+    return;
+  }
+
+  const existing = userQueries.findByUsername.get("404");
+  if (existing) return; // already seeded
+
+  const hash = await bcrypt.hash(adminPassword, 10);
+  db.run("INSERT INTO users (username, password, is_admin) VALUES (?, ?, 1)", ["404", hash]);
+  console.log("✅ Compte admin '404' créé.");
+}
+
+// ── Queries ────────────────────────────────────────────────────────────────
+
 const userQueries = {
-  create: stmt("INSERT INTO users (username, password, avatar) VALUES (?, ?, ?)"),
-  findByUsername: stmt("SELECT * FROM users WHERE username = ?"),
-  findById: stmt("SELECT id, username, avatar, created_at FROM users WHERE id = ?"),
+  create:          stmt("INSERT INTO users (username, password, avatar, color) VALUES (?, ?, ?, ?)"),
+  findByUsername:  stmt("SELECT * FROM users WHERE username = ?"),
+  findById:        stmt("SELECT id, username, avatar, color, is_admin, created_at FROM users WHERE id = ?"),
 };
 
 const roomQueries = {
-  all: stmt("SELECT * FROM rooms ORDER BY id ASC"),
+  all:        stmt("SELECT * FROM rooms ORDER BY id ASC"),
   findByName: stmt("SELECT * FROM rooms WHERE name = ?"),
+  create:     stmt("INSERT INTO rooms (name, description) VALUES (?, ?)"),
+  delete:     stmt("DELETE FROM rooms WHERE name = ? AND protected = 0"),
 };
 
 const messageQueries = {
   insert: stmt("INSERT INTO messages (room_id, user_id, content, type) VALUES (?, ?, ?, ?)"),
-  lastN: stmt(`
+  lastN:  stmt(`
     SELECT m.id, m.content, m.type, m.created_at,
-           u.id AS user_id, u.username, u.avatar
+           u.id AS user_id, u.username, u.avatar, u.color, u.is_admin
     FROM messages m
     JOIN users u ON u.id = m.user_id
     WHERE m.room_id = ?
     ORDER BY m.created_at DESC
     LIMIT ?
   `),
+  deleteByRoom: stmt("DELETE FROM messages WHERE room_id = ?"),
 };
 
-module.exports = { initDb, userQueries, roomQueries, messageQueries };
+module.exports = { initDb, initAdmin, userQueries, roomQueries, messageQueries };
