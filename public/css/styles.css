@@ -505,12 +505,14 @@ input[type="file"] { display: none; }
   align-items: center;
   justify-content: center;
   z-index: 999;
+  touch-action: none; /* disable pinch-to-zoom inside the lightbox */
 }
 .lightbox img {
   max-width: 90vw;
   max-height: 90vh;
   border-radius: var(--radius);
   object-fit: contain;
+  pointer-events: none; /* image itself doesn't capture touch */
 }
 .lightbox-close {
   position: absolute;
@@ -651,4 +653,12 @@ input[type="file"] { display: none; }
   .sidebar-toggle { display: flex; }
   .room-desc { display: none; }
   .msg-image { max-width: 100%; }
+
+  /* iOS auto-zoom fix: inputs < 16px trigger zoom on focus */
+  .message-input-bar input[type="text"],
+  .form-group input[type="text"],
+  .form-group input[type="password"],
+  #newRoomName, #newRoomDesc {
+    font-size: 1rem;
+  }
 }

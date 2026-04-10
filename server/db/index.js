@@ -65,13 +65,9 @@ async function initDb() {
     );
   `);
 
-  // Seed protected default rooms (cannot be deleted)
+  // Seed: only #general is protected by default. Admin creates others.
   db.run("INSERT OR IGNORE INTO rooms (name, description, protected) VALUES (?, ?, 1)",
     ["general", "Le salon principal"]);
-  db.run("INSERT OR IGNORE INTO rooms (name, description, protected) VALUES (?, ?, 1)",
-    ["random", "Tout et n'importe quoi"]);
-  db.run("INSERT OR IGNORE INTO rooms (name, description, protected) VALUES (?, ?, 1)",
-    ["images", "Partage de photos"]);
 }
 
 async function initAdmin() {
