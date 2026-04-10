@@ -4,23 +4,24 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const session = require("express-session");
-const SQLiteStore = require("connect-sqlite3")(session);
+const MemoryStore = require("memorystore")(session);
 const path = require("path");
 
 const authRoutes = require("./routes/auth");
 const apiRoutes = require("./routes/api");
-const { requireAuth, redirectIfAuth } = require("./middleware/auth");
+const { requireAuth } = require("./middleware/auth");
 const registerSocketHandlers = require("./socket");
+const { initDb } = require("./db");
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
 // --- Session setup ---
-const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, "..");
-
 const sessionMiddleware = session({
-  store: new SQLiteStore({ db: "sessions.db", dir: DATA_DIR }),
+  store: new MemoryStore({
+    checkPeriod: 86400000, // purge expired entries every 24h
+  }),
   secret: process.env.SESSION_SECRET || "404buddy_secret",
   resave: false,
   saveUninitialized: false,
@@ -55,8 +56,16 @@ app.use(express.static(path.join(__dirname, "../public")));
 // --- Socket.IO ---
 registerSocketHandlers(io);
 
-// --- Start ---
+// --- Start (wait for DB init first) ---
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`✅ 404Buddy 2.0 en ligne → http://localhost:${PORT}`);
-});
+
+initDb()
+  .then(() => {
+    server.listen(PORT, () => {
+      console.log(`✅ 404Buddy 2.0 en ligne → http://localhost:${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error("Échec de l'initialisation de la base de données :", err);
+    process.exit(1);
+  });
