@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
   <title>404Buddy</title>
   <link rel="stylesheet" href="css/styles.css" />
 </head>
@@ -53,13 +53,19 @@
     </div>
 
     <div class="messages" id="messages" style="display:none"></div>
-    <div class="typing-indicator" id="typingIndicator"></div>
+    <div class="input-meta">
+      <div class="typing-indicator" id="typingIndicator"></div>
+      <span class="char-counter" id="charCounter" style="display:none"></span>
+    </div>
 
     <div class="message-input-bar">
       <button class="icon-btn attach-btn" id="attachBtn" title="Envoyer une image">📎</button>
       <input type="file" id="fileInput" accept="image/*" style="display:none" />
-      <input type="text" id="msgInput" placeholder="Message…" autocomplete="off" maxlength="2000" />
-      <button class="send-btn" id="sendBtn">Envoyer</button>
+      <input type="text" id="msgInput" placeholder="Message…" autocomplete="off" maxlength="250" />
+      <button class="send-btn" id="sendBtn">
+        <span class="send-text">Envoyer</span>
+        <span class="send-icon">➤</span>
+      </button>
     </div>
   </div>
 

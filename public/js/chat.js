@@ -34,13 +34,17 @@ const sidebar       = $("sidebar");
 const sidebarToggle = $("sidebarToggle");
 const roomNameEl    = $("currentRoomName");
 const roomDescEl    = $("currentRoomDesc");
-const addRoomBtn    = $("addRoomBtn");
+const addRoomBtn      = $("addRoomBtn");
 const createRoomModal = $("createRoomModal");
-const createRoomBtn = $("createRoomBtn");
-const cancelRoomBtn = $("cancelRoomBtn");
-const newRoomName   = $("newRoomName");
-const newRoomDesc   = $("newRoomDesc");
+const createRoomBtn   = $("createRoomBtn");
+const cancelRoomBtn   = $("cancelRoomBtn");
+const newRoomName     = $("newRoomName");
+const newRoomDesc     = $("newRoomDesc");
 const createRoomError = $("createRoomError");
+const charCounter     = $("charCounter");
+
+const CHAR_LIMIT = 250;
+const CHAR_WARN  = 50;
 
 // ============================
 // Theme
@@ -225,12 +229,24 @@ function renderRooms() {
     hash.className = "room-hash-icon";
     hash.textContent = "#";
 
+    const roomInfo = document.createElement("span");
+    roomInfo.style.flex = "1";
+    roomInfo.style.minWidth = "0";
+
     const nameSpan = document.createElement("span");
-    nameSpan.style.flex = "1";
+    nameSpan.style.display = "block";
     nameSpan.textContent = r.name;
+    roomInfo.appendChild(nameSpan);
+
+    if (r.description) {
+      const descSpan = document.createElement("span");
+      descSpan.className = "room-item-desc";
+      descSpan.textContent = r.description;
+      roomInfo.appendChild(descSpan);
+    }
 
     li.appendChild(hash);
-    li.appendChild(nameSpan);
+    li.appendChild(roomInfo);
     li.addEventListener("click", () => joinRoom(r.name));
 
     // Admin delete button (only on non-protected rooms)
@@ -360,6 +376,16 @@ msgInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
 });
 msgInput.addEventListener("input", () => {
+  // Char counter
+  const remaining = CHAR_LIMIT - msgInput.value.length;
+  if (remaining <= CHAR_WARN) {
+    charCounter.textContent = remaining;
+    charCounter.className = "char-counter" + (remaining <= 10 ? " danger" : " warn");
+    charCounter.style.display = "";
+  } else {
+    charCounter.style.display = "none";
+  }
+  // Typing indicator
   socket.emit("typing", true);
   clearTimeout(typingTimeout);
   typingTimeout = setTimeout(() => socket.emit("typing", false), 2500);

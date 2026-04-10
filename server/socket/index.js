@@ -69,7 +69,7 @@ module.exports = function registerSocketHandlers(io) {
 
       if (!content || typeof content !== "string") return;
       if (type === "text" && content.trim().length === 0) return;
-      if (type === "text" && content.length > 2000) return;
+      if (type === "text" && content.length > 250) return;
       if (type === "image" && content.length > 4 * 1024 * 1024) return;
 
       const trimmed = type === "text" ? content.trim() : content;
