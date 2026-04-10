@@ -2,6 +2,7 @@ services:
   - type: web
     name: 404buddy
     runtime: node
+    plan: free
     buildCommand: npm install
     startCommand: npm start
     envVars:
@@ -9,9 +10,9 @@ services:
         value: production
       - key: SESSION_SECRET
         generateValue: true   # Render génère une valeur aléatoire automatiquement
-      - key: DATA_DIR
-        value: /var/data
-    disk:
-      name: 404buddy-data
-      mountPath: /var/data
-      sizeGB: 1
+    # Pas de disk → SQLite éphémère (données reset à chaque redéploiement)
+    # Passer au plan Starter ($7/mois) + décommenter ci-dessous pour la persistence :
+    # disk:
+    #   name: 404buddy-data
+    #   mountPath: /var/data
+    #   sizeGB: 1
