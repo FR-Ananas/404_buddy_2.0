@@ -23,7 +23,7 @@ app.set("io", io);
 // --- Session ---
 const sessionMiddleware = session({
   store: new MemoryStore({ checkPeriod: 86400000 }),
-  secret: process.env.SESSION_SECRET || "404buddy_secret",
+  secret: process.env.SESSION_SECRET || "aeglane_secret",
   resave: false,
   saveUninitialized: false,
   cookie: { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000 },
@@ -55,7 +55,7 @@ initDb()
   .then(() => initAdmin())
   .then(() => {
     server.listen(PORT, () => {
-      console.log(`✅ 404Buddy 2.0 en ligne → http://localhost:${PORT}`);
+      console.log(`✅ Aeglane en ligne → http://localhost:${PORT}`);
     });
   })
   .catch((err) => {

@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: 404buddy
+    name: aeglane
     runtime: node
     plan: free
     buildCommand: npm install
