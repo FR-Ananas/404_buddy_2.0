@@ -181,9 +181,9 @@ input[type="file"] { display: none; }
    Chat page layout
    ============================ */
 .chat-page {
+  position: fixed;   /* requis pour que l'ajustement JS fonctionne */
+  inset: 0;          /* top:0 right:0 bottom:0 left:0 */
   display: flex;
-  height: 100vh;        /* fallback */
-  height: 100dvh;       /* iOS 15.4+ : s'ajuste quand le clavier s'ouvre */
   overflow: hidden;
 }
 

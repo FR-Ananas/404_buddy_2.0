@@ -499,4 +499,30 @@ async function init() {
   if (rooms.length > 0) joinRoom(rooms[0].name);
 }
 
+// ============================
+// Keyboard resize (Android + iOS)
+// visualViewport donne la vraie hauteur visible hors clavier.
+// On ajuste .chat-page dynamiquement pour que l'input reste visible.
+// ============================
+if (window.visualViewport) {
+  const chatPage = document.querySelector(".chat-page");
+  let lastHeight = window.visualViewport.height;
+
+  function onViewportChange() {
+    const { height, offsetTop } = window.visualViewport;
+    chatPage.style.height = height + "px";
+    chatPage.style.top    = offsetTop + "px";
+    // Si le clavier vient de s'ouvrir (hauteur diminuée), scroll en bas
+    if (height < lastHeight) setTimeout(scrollBottom, 60);
+    lastHeight = height;
+  }
+
+  window.visualViewport.addEventListener("resize", onViewportChange);
+  window.visualViewport.addEventListener("scroll", onViewportChange);
+  onViewportChange(); // initialise au chargement
+}
+
+// Scroll en bas quand l'input reçoit le focus (délai = temps d'ouverture clavier)
+msgInput.addEventListener("focus", () => setTimeout(scrollBottom, 300));
+
 init();
