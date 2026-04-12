@@ -1,7 +1,7 @@
 /* ============================
    Fonts
    ============================ */
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Josefin+Sans:wght@300;400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
 
 /* ============================
    CSS Variables
@@ -46,8 +46,7 @@
   --users-panel-w:  220px;
   --header-h:       52px;
 
-  --font:       "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-brand: "Josefin Sans", sans-serif;
+  --font: "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 [data-theme="dark"] {
@@ -94,28 +93,31 @@ html, body {
 }
 
 /* ============================
-   Brand mark
+   Logo images
    ============================ */
-.brand-mark {
-  display: flex;
-  align-items: center;
-  gap: .5rem;
-  color: inherit;
-  flex-shrink: 0;
+
+/* Auth page — always dark bg → invert to white mark */
+.auth-logo-img {
+  height: 88px;
+  width: auto;
+  display: block;
+  margin: 0 auto;
+  filter: invert(1);
+  opacity: .88;
 }
-.brand-bar {
-  width: 1.5px;
-  height: 1.2rem;
-  background: currentColor;
-  border-radius: 1px;
+
+/* Chat header — light bg: multiply removes white; dark bg: invert */
+.header-logo {
+  height: 30px;
+  width: auto;
   flex-shrink: 0;
+  mix-blend-mode: multiply;
+  display: block;
 }
-.brand-name {
-  font-family: var(--font-brand);
-  font-size: .875rem;
-  font-weight: 600;
-  letter-spacing: .18em;
-  color: inherit;
+[data-theme="dark"] .header-logo {
+  filter: invert(1);
+  mix-blend-mode: normal;
+  opacity: .82;
 }
 
 /* ============================
@@ -141,19 +143,6 @@ html, body {
 .auth-logo {
   text-align: center;
   margin-bottom: 2rem;
-  color: #ede9e3;
-}
-.auth-logo .brand-mark {
-  justify-content: center;
-  color: #ede9e3;
-}
-.auth-logo .brand-bar {
-  width: 2px;
-  height: 1.75rem;
-}
-.auth-logo .brand-name {
-  font-size: 1.375rem;
-  letter-spacing: .25em;
 }
 .auth-tagline {
   margin-top: .75rem;
@@ -599,10 +588,7 @@ input[type="file"] { display: none; }
   gap: .25rem;
   flex-shrink: 0;
 }
-.header-start {
-  gap: .5rem;
-  color: var(--sidebar-logo);
-}
+.header-start { gap: .5rem; }
 .chat-header-info {
   flex: 1;
   display: flex;
