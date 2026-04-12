@@ -10,6 +10,8 @@ let typingTimeout = null;
 const typingUsers = new Map();
 let constellationPositions = []; // positions from last renderConstellation call
 
+const MAX_ROOMS = 30; // max rooms displayed + creatable
+
 // ============================
 // DOM refs
 // ============================
@@ -236,104 +238,147 @@ function nameHash(str) {
   return Math.abs(h);
 }
 
-// Compute (x, y) positions for all rooms
+// Organic placement — seeded Poisson-disc approximation.
+// Each room gets a stable position derived from its name hash;
+// rooms are placed so nothing overlaps and nothing goes off-canvas.
 function computePositions(roomList, vw, vh) {
-  const CX = vw / 2;
-  const CY = vh / 2;
-  const BASE = Math.min(vw * 0.41, vh * 0.41, 390);
+  const MARGIN   = 72;  // clearance from canvas edge
+  const MIN_DIST = 92;  // minimum centre-to-centre distance (px)
+  const TRIES    = 240; // candidate attempts per room
 
-  // 3 rings around center; center = index of protected (or first) room
-  const RINGS = [
-    { r: BASE * 0.40, max: 6  },
-    { r: BASE * 0.73, max: 8  },
-    { r: BASE * 1.00, max: 6  },
-  ];
+  const CX = vw / 2, CY = vh / 2;
 
   const centerIdx = roomList.findIndex(r => r.protected) !== -1
     ? roomList.findIndex(r => r.protected) : 0;
 
-  const others = roomList
-    .map((r, i) => ({ r, i }))
-    .filter(({ i }) => i !== centerIdx);
-
-  // Group others into rings
-  const grouped = [[], [], []];
-  let ri = 0;
-  for (const item of others) {
-    while (ri < RINGS.length && grouped[ri].length >= RINGS[ri].max) ri++;
-    if (ri >= RINGS.length) break;
-    grouped[ri].push(item);
-  }
-
   const positions = new Array(roomList.length).fill(null);
   positions[centerIdx] = { x: CX, y: CY, ring: -1 };
 
-  grouped.forEach((group, ringIdx) => {
-    const n = group.length;
-    const ringR = RINGS[ringIdx].r;
-    group.forEach(({ r, i }, pi) => {
-      const hash = nameHash(r.name);
-      // Base angle: evenly spread, starting from top (-π/2)
-      const baseAngle = (pi / n) * 2 * Math.PI - Math.PI / 2;
-      // Jitter: up to ±20% of the inter-node angle, seeded by name
-      const jitter = (seededRand(hash) - 0.5) * (2 * Math.PI / n) * 0.38;
-      // Radius variation: ±15px
-      const rJitter = (seededRand(hash + 1) - 0.5) * 30;
-      const angle = baseAngle + jitter;
-      const rad   = ringR + rJitter;
-      positions[i] = {
-        x: CX + Math.cos(angle) * rad,
-        y: CY + Math.sin(angle) * rad,
-        ring: ringIdx,
-      };
-    });
-  });
+  // Cap at MAX_ROOMS (including center)
+  const others = roomList
+    .map((r, i) => ({ r, i }))
+    .filter(({ i }) => i !== centerIdx)
+    .slice(0, MAX_ROOMS - 1);
 
-  return { positions, centerIdx, grouped };
+  for (const { r, i } of others) {
+    const h = nameHash(r.name);
+    let bestX = CX, bestY = CY, bestMinDist = -Infinity;
+
+    for (let t = 0; t < TRIES; t++) {
+      const x = MARGIN + seededRand(h * 3 + t * 7 + 1) * (vw - 2 * MARGIN);
+      const y = MARGIN + seededRand(h * 5 + t * 11 + 3) * (vh - 2 * MARGIN);
+
+      let minD = Infinity;
+      for (let j = 0; j < roomList.length; j++) {
+        if (!positions[j]) continue;
+        minD = Math.min(minD, Math.hypot(x - positions[j].x, y - positions[j].y));
+      }
+
+      if (minD >= MIN_DIST) { bestX = x; bestY = y; break; } // valid — use it
+      if (minD > bestMinDist) { bestMinDist = minD; bestX = x; bestY = y; }
+    }
+
+    positions[i] = { x: bestX, y: bestY, ring: 0 };
+  }
+
+  return { positions, centerIdx };
 }
 
-// Build connection pairs (index, index)
-function computeConnections(positions, centerIdx, grouped) {
-  const conns = [];
-  const ring0 = grouped[0].map(({ i }) => i);
-  const ring1 = grouped[1].map(({ i }) => i);
-  const ring2 = grouped[2].map(({ i }) => i);
+// Minimum spanning tree (Prim) from center + one extra edge per node toward
+// its closest non-MST neighbour within 230 px, for a denser organic graph.
+function computeConnections(positions, centerIdx) {
+  const valid = positions.map((p, i) => p ? i : null).filter(i => i !== null);
+  if (valid.length <= 1) return [];
 
-  // Center → ring 0
-  ring0.forEach(i => conns.push([centerIdx, i]));
-  // If no ring 0, center → ring 1 directly
-  if (ring0.length === 0) ring1.forEach(i => conns.push([centerIdx, i]));
+  const inTree = new Set([centerIdx]);
+  const rest   = new Set(valid.filter(i => i !== centerIdx));
+  const conns  = [];
 
-  // Ring 0 → ring 1 (nearest neighbour)
-  ring1.forEach(i => {
+  while (rest.size > 0) {
+    let bDist = Infinity, bFrom = -1, bTo = -1;
+    for (const to of rest) {
+      const pt = positions[to];
+      for (const from of inTree) {
+        const d = Math.hypot(pt.x - positions[from].x, pt.y - positions[from].y);
+        if (d < bDist) { bDist = d; bFrom = from; bTo = to; }
+      }
+    }
+    if (bTo === -1) break;
+    conns.push([bFrom, bTo]);
+    inTree.add(bTo);
+    rest.delete(bTo);
+  }
+
+  // Extra edges: nearest non-MST neighbour within 230 px
+  for (const i of valid) {
     const pi = positions[i];
-    const parents = ring0.length ? ring0 : [centerIdx];
-    let nearest = parents[0], minD = Infinity;
-    parents.forEach(j => {
+    let nearIdx = -1, nearDist = 230;
+    for (const j of valid) {
+      if (j === i) continue;
+      if (conns.some(([a, b]) => (a === i && b === j) || (a === j && b === i))) continue;
       const d = Math.hypot(pi.x - positions[j].x, pi.y - positions[j].y);
-      if (d < minD) { minD = d; nearest = j; }
-    });
-    conns.push([nearest, i]);
-  });
-
-  // Ring 1 → ring 2 (nearest neighbour)
-  ring2.forEach(i => {
-    const pi = positions[i];
-    const parents = ring1.length ? ring1 : (ring0.length ? ring0 : [centerIdx]);
-    let nearest = parents[0], minD = Infinity;
-    parents.forEach(j => {
-      const d = Math.hypot(pi.x - positions[j].x, pi.y - positions[j].y);
-      if (d < minD) { minD = d; nearest = j; }
-    });
-    conns.push([nearest, i]);
-  });
+      if (d < nearDist) { nearDist = d; nearIdx = j; }
+    }
+    if (nearIdx >= 0) conns.push([i, nearIdx]);
+  }
 
   return conns;
 }
 
 // ============================
-// Constellation — burst effects
+// Constellation — button visibility
 // ============================
+function updateConstellationAddButton() {
+  if (!me?.isAdmin) return;
+  constellationAdd.style.display = rooms.length >= MAX_ROOMS ? "none" : "";
+}
+
+// ============================
+// Constellation — burst & shard effects
+// ============================
+const SHARD_SHAPES = [
+  "polygon(50% 0%, 15% 100%, 100% 70%)",
+  "polygon(0% 30%, 100% 0%, 85% 100%)",
+  "polygon(20% 0%, 100% 40%, 60% 100%)",
+  "polygon(50% 0%, 100% 90%, 0% 100%)",
+  "polygon(0% 0%, 80% 10%, 100% 100%, 20% 90%)",
+  "polygon(10% 0%, 100% 20%, 90% 100%, 0% 80%)",
+  "polygon(40% 0%, 100% 60%, 50% 100%, 0% 40%)",
+];
+
+function addShatterEffect(x, y) {
+  const COUNT = 14;
+  for (let i = 0; i < COUNT; i++) {
+    const angle = (i / COUNT) * Math.PI * 2 + seededRand(i * 41 + 17) * 0.7;
+    const dist  = 32 + seededRand(i * 23 + 9)  * 65;
+    const tx    = Math.cos(angle) * dist;
+    const ty    = Math.sin(angle) * dist;
+    const ox    = (seededRand(i * 19 + 3) - 0.5) * 16;
+    const oy    = (seededRand(i * 29 + 7) - 0.5) * 16;
+    const rot   = seededRand(i * 13 + 11) * 360;
+    const spin  = (seededRand(i * 7  + 2) - 0.5) * 720;
+    const w     = 5  + seededRand(i * 17 + 5) * 11;
+    const h     = 9  + seededRand(i * 31 + 1) * 16;
+    const shape = SHARD_SHAPES[i % SHARD_SHAPES.length];
+    const dur   = 0.42 + seededRand(i * 11 + 13) * 0.38;
+    const delay = seededRand(i * 37 + 19) * 0.09;
+
+    const shard = document.createElement("div");
+    shard.className = "c-shard";
+    shard.style.cssText = `
+      left:${x}px; top:${y}px;
+      width:${w.toFixed(1)}px; height:${h.toFixed(1)}px;
+      clip-path:${shape};
+      --ox:${ox.toFixed(1)}px; --oy:${oy.toFixed(1)}px;
+      --tx:${tx.toFixed(1)}px; --ty:${ty.toFixed(1)}px;
+      --rot:${rot.toFixed(0)}deg; --spin:${spin.toFixed(0)}deg;
+      animation-duration:${dur.toFixed(2)}s;
+      animation-delay:${delay.toFixed(2)}s;
+    `;
+    constellationNodes.appendChild(shard);
+    shard.addEventListener("animationend", () => shard.remove(), { once: true });
+  }
+}
 function addBurstEffect(x, y, type) {
   const isDeath  = type === "death";
   const ringCount = isDeath ? 3 : 4;
@@ -396,9 +441,9 @@ function renderConstellation(opts = {}) {
   constellationNodes.style.width  = CVW + "px";
   constellationNodes.style.height = CVH + "px";
 
-  const { positions, centerIdx, grouped } = computePositions(rooms, CVW, CVH);
+  const { positions, centerIdx } = computePositions(rooms, CVW, CVH);
   constellationPositions = positions; // save for burst effects
-  const connections = computeConnections(positions, centerIdx, grouped);
+  const connections = computeConnections(positions, centerIdx);
 
   // --- SVG: stars + lines ---
   const NS = "http://www.w3.org/2000/svg";
@@ -437,15 +482,17 @@ function renderConstellation(opts = {}) {
 
   // --- HTML nodes ---
   constellationNodes.innerHTML = "";
-  const nodeSize = (ring) => ring === -1 ? 68 : ring === 0 ? 54 : ring === 1 ? 48 : 44;
+  // Center is large; others vary organically by name (44–60 px)
+  const nodeSize = (room, isCenter) =>
+    isCenter ? 68 : 44 + Math.round(seededRand(nameHash(room.name) * 7 + 3) * 16);
 
   rooms.forEach((room, idx) => {
     const pos = positions[idx];
-    if (!pos) return; // over ring limit
+    if (!pos) return;
 
     const isCenter  = idx === centerIdx;
     const isBirth   = room.name === opts.birthRoom;
-    const size      = nodeSize(pos.ring);
+    const size      = nodeSize(room, isCenter);
     const delay     = isCenter ? 0 : 0.06 + idx * 0.04;
 
     const node = document.createElement("div");
@@ -612,8 +659,9 @@ socket.on("user_typing", ({ username, isTyping }) => {
 socket.on("room_created", (room) => {
   if (!rooms.find((r) => r.name === room.name)) {
     rooms.push(room);
+    updateConstellationAddButton();
     if (constellationOverlay.style.display !== "none") {
-      renderConstellation({ birthRoom: room.name }); // nova birth animation
+      renderConstellation({ birthRoom: room.name });
     }
   }
 });
@@ -622,15 +670,16 @@ socket.on("room_deleted", ({ name }) => {
   if (constellationOverlay.style.display !== "none") {
     const dyingNode = constellationNodes.querySelector(`[data-room="${CSS.escape(name)}"]`);
     if (dyingNode) {
-      // Trigger death burst at the node's saved position
       const ri = rooms.findIndex(r => r.name === name);
       if (ri >= 0 && constellationPositions[ri]) {
-        addBurstEffect(constellationPositions[ri].x, constellationPositions[ri].y, "death");
+        const { x, y } = constellationPositions[ri];
+        addShatterEffect(x, y);          // shard explosion
+        addBurstEffect(x, y, "death");   // secondary shockwave rings
       }
       dyingNode.classList.add("dying");
-      // Wait for the death animation, then clean up
       setTimeout(() => {
         rooms = rooms.filter(r => r.name !== name);
+        updateConstellationAddButton();
         renderConstellation({ instant: true });
         if (currentRoom === name && rooms.length > 0) {
           currentRoom = null;
@@ -642,6 +691,7 @@ socket.on("room_deleted", ({ name }) => {
   }
   // Constellation closed — update silently
   rooms = rooms.filter(r => r.name !== name);
+  updateConstellationAddButton();
   if (currentRoom === name && rooms.length > 0) {
     currentRoom = null;
     joinRoom(rooms[0].name);
@@ -789,15 +839,14 @@ async function init() {
 
   selfName.textContent = me.username;
   if (me.color) selfName.style.color = me.color;
-  if (me.isAdmin) {
-    selfName.classList.add("is-admin");
-    constellationAdd.style.display = "";
-  }
+  if (me.isAdmin) selfName.classList.add("is-admin");
   if (me.avatar) { selfAvatar.src = me.avatar; selfAvatar.style.display = ""; }
 
   const roomsRes = await fetch("/api/rooms");
   if (!roomsRes.ok) return;
   rooms = await roomsRes.json();
+
+  updateConstellationAddButton(); // show/hide based on room count + admin status
 
   if (rooms.length > 0) joinRoom(rooms[0].name);
 }

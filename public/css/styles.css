@@ -783,16 +783,19 @@ input[type="file"] { display: none; }
   100% { opacity: 1; transform: translate(-50%,-50%) scale(1);    filter: brightness(1);   }
 }
 
-/* ---- Star death ---- */
+/* ---- Star death — strobe flicker then shatter-collapse ---- */
 .c-node.dying {
-  animation: c-node-die .55s ease-in forwards;
+  animation: c-node-die .62s ease-in forwards;
   pointer-events: none;
 }
 @keyframes c-node-die {
-  0%   { opacity: 1;   transform: translate(-50%,-50%) scale(1);    filter: brightness(1);   }
-  15%  { opacity: 1;   transform: translate(-50%,-50%) scale(1.55); filter: brightness(7);   }
-  60%  { opacity: .45; transform: translate(-50%,-50%) scale(.28);  filter: brightness(2.5); }
-  100% { opacity: 0;   transform: translate(-50%,-50%) scale(0);    filter: brightness(0);   }
+  0%   { opacity: 1;   transform: translate(-50%,-50%) scale(1);    filter: brightness(1)  saturate(1); }
+  7%   { opacity: 1;   transform: translate(-50%,-50%) scale(1.14); filter: brightness(14) saturate(0); }
+  14%  { opacity: 1;   transform: translate(-50%,-50%) scale(.97);  filter: brightness(4)  saturate(.4); }
+  22%  { opacity: 1;   transform: translate(-50%,-50%) scale(1.08); filter: brightness(9)  saturate(0); }
+  35%  { opacity: .8;  transform: translate(-50%,-50%) scale(.65);  filter: brightness(3); }
+  60%  { opacity: .3;  transform: translate(-50%,-50%) scale(.22);  filter: brightness(1.5); }
+  100% { opacity: 0;   transform: translate(-50%,-50%) scale(0);    filter: brightness(0); }
 }
 
 /* ---- Burst effects (birth & death) ---- */
@@ -849,6 +852,34 @@ input[type="file"] { display: none; }
 @keyframes c-burst-spark {
   from { transform: translate(-50%, -50%);                                       opacity: 1; }
   to   { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy)));  opacity: 0; }
+}
+
+/* ---- Destruction shards ---- */
+.c-shard {
+  position: absolute;
+  pointer-events: none;
+  z-index: 15;
+  background: linear-gradient(
+    135deg,
+    rgba(255,245,245,.97) 0%,
+    rgba(210, 75, 75,.85) 38%,
+    rgba( 90, 20,110,.50) 75%,
+    transparent 100%
+  );
+  animation: c-shard-fly 0.5s cubic-bezier(.15, 0, .85, .45) forwards;
+}
+@keyframes c-shard-fly {
+  0%   {
+    transform: translate(calc(-50% + var(--ox)), calc(-50% + var(--oy)))
+               rotate(var(--rot)) scale(1);
+    opacity: 1;
+  }
+  18%  { opacity: .95; }
+  100% {
+    transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty)))
+               rotate(calc(var(--rot) + var(--spin))) scale(.1);
+    opacity: 0;
+  }
 }
 
 /* Circle */
