@@ -771,6 +771,86 @@ input[type="file"] { display: none; }
   to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 }
 
+/* ---- Star birth ---- */
+.c-node.born {
+  animation: c-node-born .9s cubic-bezier(.34, 1.56, .64, 1) both;
+}
+@keyframes c-node-born {
+  0%   { opacity: 0; transform: translate(-50%,-50%) scale(0);    filter: brightness(1);   }
+  22%  { opacity: 1; transform: translate(-50%,-50%) scale(1.65); filter: brightness(6);   }
+  55%  { opacity: 1; transform: translate(-50%,-50%) scale(.88);  filter: brightness(1.8); }
+  80%  { opacity: 1; transform: translate(-50%,-50%) scale(1.07); filter: brightness(1.1); }
+  100% { opacity: 1; transform: translate(-50%,-50%) scale(1);    filter: brightness(1);   }
+}
+
+/* ---- Star death ---- */
+.c-node.dying {
+  animation: c-node-die .55s ease-in forwards;
+  pointer-events: none;
+}
+@keyframes c-node-die {
+  0%   { opacity: 1;   transform: translate(-50%,-50%) scale(1);    filter: brightness(1);   }
+  15%  { opacity: 1;   transform: translate(-50%,-50%) scale(1.55); filter: brightness(7);   }
+  60%  { opacity: .45; transform: translate(-50%,-50%) scale(.28);  filter: brightness(2.5); }
+  100% { opacity: 0;   transform: translate(-50%,-50%) scale(0);    filter: brightness(0);   }
+}
+
+/* ---- Burst effects (birth & death) ---- */
+.c-burst-ring,
+.c-burst-flash,
+.c-burst-spark {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Expanding ring */
+.c-burst-ring {
+  width: 22px; height: 22px;
+  background: none;
+  border: 2px solid rgba(167, 139, 250, .85);
+  transform: translate(-50%, -50%) scale(1);
+  animation: c-burst-ring .95s ease-out forwards;
+}
+.c-burst-ring.death {
+  border-color: rgba(230, 90, 90, .85);
+  animation-duration: .6s;
+}
+@keyframes c-burst-ring {
+  from { transform: translate(-50%, -50%) scale(1); opacity: .85; }
+  to   { transform: translate(-50%, -50%) scale(8); opacity: 0; }
+}
+
+/* Central flash */
+.c-burst-flash {
+  width: 34px; height: 34px;
+  background: rgba(233, 213, 255, .92);
+  transform: translate(-50%, -50%) scale(0);
+  animation: c-burst-flash .38s ease-out forwards;
+}
+.c-burst-flash.death {
+  background: rgba(255, 190, 190, .92);
+  animation-duration: .3s;
+}
+@keyframes c-burst-flash {
+  0%   { transform: translate(-50%, -50%) scale(0);   opacity: 0; }
+  38%  { transform: translate(-50%, -50%) scale(1.9); opacity: .95; }
+  100% { transform: translate(-50%, -50%) scale(.4);  opacity: 0; }
+}
+
+/* Birth sparks */
+.c-burst-spark {
+  width: 4px; height: 4px;
+  background: rgba(233, 213, 255, .95);
+  box-shadow: 0 0 5px rgba(167, 139, 250, .9);
+  animation: c-burst-spark .7s ease-out forwards;
+}
+@keyframes c-burst-spark {
+  from { transform: translate(-50%, -50%);                                       opacity: 1; }
+  to   { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy)));  opacity: 0; }
+}
+
 /* Circle */
 .c-circle {
   border-radius: 50%;

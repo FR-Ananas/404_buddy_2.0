@@ -8,6 +8,7 @@ let rooms = [];
 let currentRoom = null;
 let typingTimeout = null;
 const typingUsers = new Map();
+let constellationPositions = []; // positions from last renderConstellation call
 
 // ============================
 // DOM refs
@@ -331,9 +332,55 @@ function computeConnections(positions, centerIdx, grouped) {
 }
 
 // ============================
-// Constellation — render
+// Constellation — burst effects
 // ============================
-function renderConstellation() {
+function addBurstEffect(x, y, type) {
+  const isDeath  = type === "death";
+  const ringCount = isDeath ? 3 : 4;
+
+  // Central flash
+  const flash = document.createElement("div");
+  flash.className = "c-burst-flash" + (isDeath ? " death" : "");
+  flash.style.left = x + "px";
+  flash.style.top  = y + "px";
+  constellationNodes.appendChild(flash);
+  flash.addEventListener("animationend", () => flash.remove(), { once: true });
+
+  // Expanding rings
+  for (let i = 0; i < ringCount; i++) {
+    const ring = document.createElement("div");
+    ring.className = "c-burst-ring" + (isDeath ? " death" : "");
+    ring.style.left = x + "px";
+    ring.style.top  = y + "px";
+    ring.style.animationDelay = (i * (isDeath ? 0.08 : 0.11)) + "s";
+    constellationNodes.appendChild(ring);
+    ring.addEventListener("animationend", () => ring.remove(), { once: true });
+  }
+
+  // Birth only: deterministic sparks shooting outward
+  if (!isDeath) {
+    for (let i = 0; i < 8; i++) {
+      const angle = (i / 8) * Math.PI * 2 + seededRand(i * 31 + 7) * 0.5;
+      const dist  = 38 + seededRand(i * 19 + 5) * 28;
+      const spark = document.createElement("div");
+      spark.className = "c-burst-spark";
+      spark.style.left = x + "px";
+      spark.style.top  = y + "px";
+      spark.style.setProperty("--dx", (Math.cos(angle) * dist).toFixed(1) + "px");
+      spark.style.setProperty("--dy", (Math.sin(angle) * dist).toFixed(1) + "px");
+      spark.style.animationDelay = (0.05 + seededRand(i * 7 + 11) * 0.12) + "s";
+      constellationNodes.appendChild(spark);
+      spark.addEventListener("animationend", () => spark.remove(), { once: true });
+    }
+  }
+}
+
+// ============================
+// Constellation — render
+// opts.birthRoom : room name that gets the nova animation
+// opts.instant   : all nodes appear without animation (after deletion)
+// ============================
+function renderConstellation(opts = {}) {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
 
@@ -350,6 +397,7 @@ function renderConstellation() {
   constellationNodes.style.height = CVH + "px";
 
   const { positions, centerIdx, grouped } = computePositions(rooms, CVW, CVH);
+  constellationPositions = positions; // save for burst effects
   const connections = computeConnections(positions, centerIdx, grouped);
 
   // --- SVG: stars + lines ---
@@ -395,15 +443,29 @@ function renderConstellation() {
     const pos = positions[idx];
     if (!pos) return; // over ring limit
 
-    const isCenter = idx === centerIdx;
-    const size = nodeSize(pos.ring);
-    const delay = isCenter ? 0 : 0.06 + idx * 0.04;
+    const isCenter  = idx === centerIdx;
+    const isBirth   = room.name === opts.birthRoom;
+    const size      = nodeSize(pos.ring);
+    const delay     = isCenter ? 0 : 0.06 + idx * 0.04;
 
     const node = document.createElement("div");
-    node.className = "c-node" + (isCenter ? " center" : "") + (room.name === currentRoom ? " active" : "");
+    node.className = "c-node"
+      + (isCenter ? " center" : "")
+      + (room.name === currentRoom ? " active" : "")
+      + (isBirth ? " born" : "");
+    node.dataset.room = room.name; // used by death animation lookup
     node.style.left = pos.x + "px";
     node.style.top  = pos.y + "px";
-    node.style.animationDelay = delay + "s";
+
+    if (opts.instant) {
+      node.style.animation = "none";           // snap into place — no fly-in
+    } else if (isBirth) {
+      node.style.animationDelay = "0.2s";      // burst fires first, then node materialises
+    } else if (opts.birthRoom) {
+      node.style.animation = "none";           // don't re-animate existing nodes
+    } else {
+      node.style.animationDelay = delay + "s";
+    }
 
     const circle = document.createElement("div");
     circle.className = "c-circle";
@@ -440,8 +502,15 @@ function renderConstellation() {
     constellationNodes.appendChild(node);
   });
 
-  // On mobile: scroll so the central node starts centered in the viewport
-  if (MOBILE) {
+  // Birth burst fires after nodes are in the DOM (so it layers above them)
+  if (opts.birthRoom) {
+    const bi = rooms.findIndex(r => r.name === opts.birthRoom);
+    if (bi >= 0 && positions[bi]) addBurstEffect(positions[bi].x, positions[bi].y, "birth");
+  }
+
+  // On mobile: scroll to center the central node.
+  // Skip on birthRoom renders so the user's pan position isn't disrupted.
+  if (MOBILE && !opts.birthRoom) {
     const cp = positions[centerIdx];
     requestAnimationFrame(() => {
       constellationScroll.scrollLeft = Math.max(0, cp.x - vw / 2);
@@ -543,14 +612,36 @@ socket.on("user_typing", ({ username, isTyping }) => {
 socket.on("room_created", (room) => {
   if (!rooms.find((r) => r.name === room.name)) {
     rooms.push(room);
-    // Redraw constellation if open
-    if (constellationOverlay.style.display !== "none") renderConstellation();
+    if (constellationOverlay.style.display !== "none") {
+      renderConstellation({ birthRoom: room.name }); // nova birth animation
+    }
   }
 });
 
 socket.on("room_deleted", ({ name }) => {
-  rooms = rooms.filter((r) => r.name !== name);
-  if (constellationOverlay.style.display !== "none") renderConstellation();
+  if (constellationOverlay.style.display !== "none") {
+    const dyingNode = constellationNodes.querySelector(`[data-room="${CSS.escape(name)}"]`);
+    if (dyingNode) {
+      // Trigger death burst at the node's saved position
+      const ri = rooms.findIndex(r => r.name === name);
+      if (ri >= 0 && constellationPositions[ri]) {
+        addBurstEffect(constellationPositions[ri].x, constellationPositions[ri].y, "death");
+      }
+      dyingNode.classList.add("dying");
+      // Wait for the death animation, then clean up
+      setTimeout(() => {
+        rooms = rooms.filter(r => r.name !== name);
+        renderConstellation({ instant: true });
+        if (currentRoom === name && rooms.length > 0) {
+          currentRoom = null;
+          joinRoom(rooms[0].name);
+        }
+      }, 620);
+      return;
+    }
+  }
+  // Constellation closed — update silently
+  rooms = rooms.filter(r => r.name !== name);
   if (currentRoom === name && rooms.length > 0) {
     currentRoom = null;
     joinRoom(rooms[0].name);
@@ -671,8 +762,8 @@ createRoomBtn.addEventListener("click", async () => {
   const data = await res.json();
   if (!res.ok) { createRoomError.textContent = data.error; return; }
   createRoomModal.style.display = "none";
-  joinRoom(data.name);
-  closeConstellation();
+  // Don't auto-join or close — admin stays in the constellation and
+  // watches the new star being born via the room_created socket event.
 });
 newRoomName.addEventListener("keydown", (e) => { if (e.key === "Enter") createRoomBtn.click(); });
 
