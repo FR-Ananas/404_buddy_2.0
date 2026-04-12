@@ -8,44 +8,48 @@
 </head>
 <body class="chat-page">
 
-  <!-- Sidebar -->
+  <!-- Rooms panel (left) -->
   <aside class="sidebar" id="sidebar">
-    <div class="sidebar-header">
-      <div class="brand-mark">
-        <div class="brand-bar"></div>
-        <span class="brand-name">aeglane</span>
+    <div class="sidebar-inner">
+      <div class="sidebar-section">
+        <div class="sidebar-label-row">
+          <h3 class="sidebar-label">Salons</h3>
+          <button class="icon-btn admin-only" id="addRoomBtn" title="Créer un salon" style="display:none">＋</button>
+        </div>
+        <ul class="room-list" id="roomList"></ul>
       </div>
-      <button class="icon-btn" id="themeToggle" title="Changer le thème">🌙</button>
-    </div>
 
-    <div class="sidebar-section">
-      <div class="sidebar-label-row">
-        <h3 class="sidebar-label">Salons</h3>
-        <button class="icon-btn admin-only" id="addRoomBtn" title="Créer un salon" style="display:none">＋</button>
+      <div class="sidebar-footer">
+        <img class="self-avatar" id="selfAvatar" src="" alt="" style="display:none" />
+        <span class="self-name" id="selfName">...</span>
+        <button class="icon-btn danger" id="logoutBtn" title="Se déconnecter">⏻</button>
       </div>
-      <ul class="room-list" id="roomList"></ul>
-    </div>
-
-    <div class="sidebar-section">
-      <h3 class="sidebar-label">Connectés <span id="onlineCount" class="badge">0</span></h3>
-      <ul class="user-list" id="userList"></ul>
-    </div>
-
-    <div class="sidebar-footer">
-      <img class="self-avatar" id="selfAvatar" src="" alt="" style="display:none" />
-      <span class="self-name" id="selfName">...</span>
-      <button class="icon-btn danger" id="logoutBtn" title="Se déconnecter">⏻</button>
     </div>
   </aside>
 
   <!-- Main area -->
   <div class="chat-layout">
     <header class="chat-header">
-      <button class="icon-btn sidebar-toggle" id="sidebarToggle" title="Menu">☰</button>
+      <div class="header-start">
+        <button class="icon-btn" id="sidebarToggle" title="Salons">☰</button>
+        <div class="brand-mark">
+          <div class="brand-bar"></div>
+          <span class="brand-name">aeglane</span>
+        </div>
+      </div>
+
       <div class="chat-header-info">
         <span class="room-hash">#</span>
         <span id="currentRoomName">…</span>
         <span class="room-desc" id="currentRoomDesc"></span>
+      </div>
+
+      <div class="header-end">
+        <button class="icon-btn users-btn" id="usersPanelToggle" title="Connectés">
+          <span class="users-dot">◉</span>
+          <span id="onlineCount">0</span>
+        </button>
+        <button class="icon-btn" id="themeToggle" title="Changer le thème">🌙</button>
       </div>
     </header>
 
@@ -71,6 +75,20 @@
       </button>
     </div>
   </div>
+
+  <!-- Users panel (right) -->
+  <div class="users-panel" id="usersPanel">
+    <div class="users-panel-inner">
+      <div class="panel-header">
+        <span class="panel-title">Connectés</span>
+        <button class="icon-btn" id="usersPanelClose" title="Fermer">✕</button>
+      </div>
+      <ul class="user-list" id="userList"></ul>
+    </div>
+  </div>
+
+  <!-- Panel backdrop (mobile overlay close) -->
+  <div class="panel-backdrop" id="panelBackdrop"></div>
 
   <!-- Lightbox -->
   <div class="lightbox" id="lightbox" style="display:none">

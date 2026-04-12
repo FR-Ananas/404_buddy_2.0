@@ -14,26 +14,30 @@ const typingUsers = new Map();
 // ============================
 const $ = (id) => document.getElementById(id);
 
-const messagesEl    = $("messages");
-const roomLoaderEl  = $("roomLoader");
-const msgInput      = $("msgInput");
-const sendBtn       = $("sendBtn");
-const roomListEl    = $("roomList");
-const userListEl    = $("userList");
-const onlineCount   = $("onlineCount");
-const selfName      = $("selfName");
-const selfAvatar    = $("selfAvatar");
-const themeToggle   = $("themeToggle");
-const logoutBtn     = $("logoutBtn");
-const typingEl      = $("typingIndicator");
-const fileInput     = $("fileInput");
-const attachBtn     = $("attachBtn");
-const lightbox      = $("lightbox");
-const lightboxImg   = $("lightboxImg");
-const sidebar       = $("sidebar");
-const sidebarToggle = $("sidebarToggle");
-const roomNameEl    = $("currentRoomName");
-const roomDescEl    = $("currentRoomDesc");
+const messagesEl      = $("messages");
+const roomLoaderEl    = $("roomLoader");
+const msgInput        = $("msgInput");
+const sendBtn         = $("sendBtn");
+const roomListEl      = $("roomList");
+const userListEl      = $("userList");
+const onlineCount     = $("onlineCount");
+const selfName        = $("selfName");
+const selfAvatar      = $("selfAvatar");
+const themeToggle     = $("themeToggle");
+const logoutBtn       = $("logoutBtn");
+const typingEl        = $("typingIndicator");
+const fileInput       = $("fileInput");
+const attachBtn       = $("attachBtn");
+const lightbox        = $("lightbox");
+const lightboxImg     = $("lightboxImg");
+const sidebar         = $("sidebar");
+const sidebarToggle   = $("sidebarToggle");
+const usersPanel      = $("usersPanel");
+const usersPanelToggle = $("usersPanelToggle");
+const usersPanelClose  = $("usersPanelClose");
+const panelBackdrop   = $("panelBackdrop");
+const roomNameEl      = $("currentRoomName");
+const roomDescEl      = $("currentRoomDesc");
 const addRoomBtn      = $("addRoomBtn");
 const createRoomModal = $("createRoomModal");
 const createRoomBtn   = $("createRoomBtn");
@@ -63,10 +67,52 @@ themeToggle.addEventListener("click", () => {
 });
 
 // ============================
-// Sidebar (mobile)
+// Panel management
 // ============================
-sidebarToggle.addEventListener("click", () => sidebar.classList.toggle("open"));
-messagesEl.addEventListener("click", () => sidebar.classList.remove("open"));
+const isMobile = () => window.innerWidth <= 640;
+
+function openPanel(panel) {
+  if (isMobile()) {
+    // On mobile, only one panel at a time; other closes
+    if (panel === sidebar)    usersPanel.classList.remove("open");
+    if (panel === usersPanel) sidebar.classList.remove("open");
+    panelBackdrop.classList.add("active");
+  }
+  panel.classList.add("open");
+  if (!isMobile()) {
+    // On desktop, scroll to bottom after width transition settles
+    setTimeout(scrollBottom, 320);
+  }
+}
+
+function closePanel(panel) {
+  panel.classList.remove("open");
+  if (isMobile()) {
+    if (!sidebar.classList.contains("open") && !usersPanel.classList.contains("open")) {
+      panelBackdrop.classList.remove("active");
+    }
+  }
+}
+
+function closeAllPanels() {
+  sidebar.classList.remove("open");
+  usersPanel.classList.remove("open");
+  panelBackdrop.classList.remove("active");
+}
+
+sidebarToggle.addEventListener("click", () => {
+  if (sidebar.classList.contains("open")) closePanel(sidebar);
+  else openPanel(sidebar);
+  if (!isMobile()) localStorage.setItem("sidebarOpen", sidebar.classList.contains("open").toString());
+});
+
+usersPanelToggle.addEventListener("click", () => {
+  if (usersPanel.classList.contains("open")) closePanel(usersPanel);
+  else openPanel(usersPanel);
+});
+
+usersPanelClose.addEventListener("click", () => closePanel(usersPanel));
+panelBackdrop.addEventListener("click", closeAllPanels);
 
 // ============================
 // Logout
@@ -80,7 +126,6 @@ logoutBtn.addEventListener("click", async () => {
 // Avatar helpers
 // ============================
 function makeAvatar(username, avatar, large = false) {
-  const cls = large ? "msg-avatar" : "avatar-placeholder";
   if (avatar) {
     const img = document.createElement("img");
     img.src = avatar;
@@ -111,7 +156,6 @@ function linkify(text) {
       `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`);
 }
 
-/** Build a styled username span (color + admin glow) */
 function makeUsernameSpan(username, color, isAdmin) {
   const span = document.createElement("span");
   span.className = "msg-author" + (isAdmin ? " is-admin" : "");
@@ -121,14 +165,17 @@ function makeUsernameSpan(username, color, isAdmin) {
 }
 
 function appendMessage(msg, prepend = false) {
-  const isAdmin  = msg.is_admin === 1;
+  const isAdmin   = msg.is_admin === 1;
+  const isOwn     = me != null && msg.user_id === me.id;
   const isGrouped = !prepend
     && lastMsgAuthor === msg.username
     && lastMsgTime
     && (new Date(msg.created_at) - new Date(lastMsgTime)) < 5 * 60 * 1000;
 
   const row = document.createElement("div");
-  row.className = "msg" + (isGrouped ? " grouped" : "");
+  row.className = "msg"
+    + (isGrouped ? " grouped" : "")
+    + (isOwn     ? " own"     : "");
 
   row.appendChild(makeAvatar(msg.username, msg.avatar, true));
 
@@ -167,6 +214,8 @@ function appendMessage(msg, prepend = false) {
     messagesEl.insertBefore(row, messagesEl.firstChild);
   } else {
     messagesEl.appendChild(row);
+    row.classList.add("msg-new");
+    row.addEventListener("animationend", () => row.classList.remove("msg-new"), { once: true });
     lastMsgAuthor = msg.username;
     lastMsgTime   = msg.created_at;
   }
@@ -225,31 +274,32 @@ function renderRooms() {
     const li = document.createElement("li");
     li.className = "room-item" + (r.name === currentRoom ? " active" : "");
 
-    const hash = document.createElement("span");
-    hash.className = "room-hash-icon";
-    hash.textContent = "#";
+    const bar = document.createElement("div");
+    bar.className = "room-pill-bar";
 
-    const roomInfo = document.createElement("span");
-    roomInfo.style.flex = "1";
-    roomInfo.style.minWidth = "0";
+    const content = document.createElement("div");
+    content.className = "room-pill-content";
 
     const nameSpan = document.createElement("span");
-    nameSpan.style.display = "block";
+    nameSpan.className = "room-pill-name";
     nameSpan.textContent = r.name;
-    roomInfo.appendChild(nameSpan);
+    content.appendChild(nameSpan);
 
     if (r.description) {
       const descSpan = document.createElement("span");
-      descSpan.className = "room-item-desc";
+      descSpan.className = "room-pill-desc";
       descSpan.textContent = r.description;
-      roomInfo.appendChild(descSpan);
+      content.appendChild(descSpan);
     }
 
-    li.appendChild(hash);
-    li.appendChild(roomInfo);
-    li.addEventListener("click", () => joinRoom(r.name));
+    li.appendChild(bar);
+    li.appendChild(content);
 
-    // Admin delete button (only on non-protected rooms)
+    li.addEventListener("click", () => {
+      joinRoom(r.name);
+      if (isMobile()) closeAllPanels();
+    });
+
     if (me?.isAdmin && !r.protected) {
       const delBtn = document.createElement("button");
       delBtn.className = "room-delete-btn";
@@ -330,7 +380,6 @@ socket.on("room_created", (room) => {
 socket.on("room_deleted", ({ name }) => {
   rooms = rooms.filter((r) => r.name !== name);
   renderRooms();
-  // If currently in the deleted room, auto-join the first available one
   if (currentRoom === name && rooms.length > 0) {
     currentRoom = null;
     joinRoom(rooms[0].name);
@@ -356,7 +405,6 @@ function joinRoom(roomName) {
   renderRooms();
   showLoader();
   socket.emit("join_room", roomName);
-  sidebar.classList.remove("open");
 }
 
 // ============================
@@ -376,7 +424,6 @@ msgInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
 });
 msgInput.addEventListener("input", () => {
-  // Char counter
   const remaining = CHAR_LIMIT - msgInput.value.length;
   if (remaining <= CHAR_WARN) {
     charCounter.textContent = remaining;
@@ -385,7 +432,6 @@ msgInput.addEventListener("input", () => {
   } else {
     charCounter.style.display = "none";
   }
-  // Typing indicator
   socket.emit("typing", true);
   clearTimeout(typingTimeout);
   typingTimeout = setTimeout(() => socket.emit("typing", false), 2500);
@@ -487,7 +533,6 @@ async function init() {
   selfName.textContent = me.username;
   if (me.color) selfName.style.color = me.color;
   if (me.isAdmin) selfName.classList.add("is-admin");
-
   if (me.avatar) { selfAvatar.src = me.avatar; selfAvatar.style.display = ""; }
   if (me.isAdmin) addRoomBtn.style.display = "";
 
@@ -497,12 +542,16 @@ async function init() {
   renderRooms();
 
   if (rooms.length > 0) joinRoom(rooms[0].name);
+
+  // Open sidebar by default on desktop (restore saved preference)
+  if (!isMobile()) {
+    const saved = localStorage.getItem("sidebarOpen");
+    if (saved !== "false") sidebar.classList.add("open");
+  }
 }
 
 // ============================
 // Keyboard resize (Android + iOS)
-// visualViewport donne la vraie hauteur visible hors clavier.
-// On ajuste .chat-page dynamiquement pour que l'input reste visible.
 // ============================
 if (window.visualViewport) {
   const chatPage = document.querySelector(".chat-page");
@@ -512,17 +561,15 @@ if (window.visualViewport) {
     const { height, offsetTop } = window.visualViewport;
     chatPage.style.height = height + "px";
     chatPage.style.top    = offsetTop + "px";
-    // Si le clavier vient de s'ouvrir (hauteur diminuée), scroll en bas
     if (height < lastHeight) setTimeout(scrollBottom, 60);
     lastHeight = height;
   }
 
   window.visualViewport.addEventListener("resize", onViewportChange);
   window.visualViewport.addEventListener("scroll", onViewportChange);
-  onViewportChange(); // initialise au chargement
+  onViewportChange();
 }
 
-// Scroll en bas quand l'input reçoit le focus (délai = temps d'ouverture clavier)
 msgInput.addEventListener("focus", () => setTimeout(scrollBottom, 300));
 
 init();
