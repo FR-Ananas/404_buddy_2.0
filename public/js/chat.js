@@ -43,6 +43,7 @@ const newRoomDesc          = $("newRoomDesc");
 const createRoomError      = $("createRoomError");
 const charCounter          = $("charCounter");
 const constellationOverlay = $("constellationOverlay");
+const constellationScroll  = $("constellationScroll");
 const constellationToggle  = $("constellationToggle");
 const constellationClose   = $("constellationClose");
 const constellationAdd     = $("constellationAdd");
@@ -336,19 +337,31 @@ function renderConstellation() {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
 
-  const { positions, centerIdx, grouped } = computePositions(rooms, vw, vh);
+  // On mobile, render onto a larger virtual canvas so rings have room to breathe.
+  // The scroll container lets the user pan to explore — like a real galaxy map.
+  const MOBILE = vw < 768;
+  const CVW = MOBILE ? Math.max(vw, 1000) : vw;
+  const CVH = MOBILE ? Math.max(vh, 1000) : vh;
+
+  // Size the SVG and nodes container to the virtual canvas
+  constellationSvg.style.width    = CVW + "px";
+  constellationSvg.style.height   = CVH + "px";
+  constellationNodes.style.width  = CVW + "px";
+  constellationNodes.style.height = CVH + "px";
+
+  const { positions, centerIdx, grouped } = computePositions(rooms, CVW, CVH);
   const connections = computeConnections(positions, centerIdx, grouped);
 
   // --- SVG: stars + lines ---
   const NS = "http://www.w3.org/2000/svg";
   constellationSvg.innerHTML = "";
-  constellationSvg.setAttribute("viewBox", `0 0 ${vw} ${vh}`);
+  constellationSvg.setAttribute("viewBox", `0 0 ${CVW} ${CVH}`);
 
-  // Stars (deterministic)
-  const STAR_COUNT = 140;
+  // Stars — scale count proportionally to the virtual canvas area
+  const STAR_COUNT = Math.min(Math.round(140 * (CVW * CVH) / (vw * vh)), 300);
   for (let s = 0; s < STAR_COUNT; s++) {
-    const cx = seededRand(s * 3)   * vw;
-    const cy = seededRand(s * 7)   * vh;
+    const cx = seededRand(s * 3)   * CVW;
+    const cy = seededRand(s * 7)   * CVH;
     const r  = seededRand(s * 11)  < 0.12 ? 1.4 : seededRand(s * 11) < 0.35 ? 0.9 : 0.5;
     const op = 0.15 + seededRand(s * 17) * 0.55;
     const circle = document.createElementNS(NS, "circle");
@@ -426,6 +439,15 @@ function renderConstellation() {
 
     constellationNodes.appendChild(node);
   });
+
+  // On mobile: scroll so the central node starts centered in the viewport
+  if (MOBILE) {
+    const cp = positions[centerIdx];
+    requestAnimationFrame(() => {
+      constellationScroll.scrollLeft = Math.max(0, cp.x - vw / 2);
+      constellationScroll.scrollTop  = Math.max(0, cp.y - vh / 2);
+    });
+  }
 }
 
 // ============================
@@ -456,9 +478,15 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-// Close on click outside all nodes
-constellationOverlay.addEventListener("click", (e) => {
-  if (e.target === constellationOverlay || e.target === constellationSvg) closeConstellation();
+// Close on click of empty space (desktop only — on mobile the ✕ button and
+// Escape handle it, to avoid accidental closes while panning)
+constellationScroll.addEventListener("click", (e) => {
+  if (e.target === constellationScroll && window.innerWidth >= 768) closeConstellation();
+});
+
+// Re-render on resize / orientation change
+window.addEventListener("resize", () => {
+  if (constellationOverlay.style.display !== "none") renderConstellation();
 });
 
 // ============================

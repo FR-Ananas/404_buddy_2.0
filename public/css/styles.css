@@ -726,19 +726,29 @@ input[type="file"] { display: none; }
   overflow: hidden;
 }
 
-/* SVG layer — stars + connection lines */
-.constellation-svg {
+/* Scrollable canvas — fills the overlay, scrollable on mobile */
+.constellation-scroll {
   position: absolute;
   inset: 0;
-  width: 100%;
-  height: 100%;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;  /* Firefox */
+}
+.constellation-scroll::-webkit-scrollbar { display: none; }
+
+/* SVG layer — stars + connection lines; size set by JS */
+.constellation-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
   pointer-events: none;
 }
 
-/* Nodes container */
+/* Nodes container; size set by JS */
 .constellation-nodes {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
   pointer-events: none; /* children re-enable */
 }
 
