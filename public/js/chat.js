@@ -25,8 +25,8 @@ const userListEl           = $("userList");
 const onlineCount          = $("onlineCount");
 const selfName             = $("selfName");
 const selfAvatar           = $("selfAvatar");
-const themeToggle          = $("themeToggle");
 const logoutBtn            = $("logoutBtn");
+const cPresenceList        = $("cPresenceList");
 const typingEl             = $("typingIndicator");
 const fileInput            = $("fileInput");
 const attachBtn            = $("attachBtn");
@@ -55,22 +55,6 @@ const constellationNodes   = $("constellationNodes");
 
 const CHAR_LIMIT = 250;
 const CHAR_WARN  = 50;
-
-// ============================
-// Theme
-// ============================
-(function initTheme() {
-  const saved = localStorage.getItem("theme") || "light";
-  document.documentElement.setAttribute("data-theme", saved);
-  themeToggle.textContent = saved === "dark" ? "☀️" : "🌙";
-})();
-
-themeToggle.addEventListener("click", () => {
-  const next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
-  document.documentElement.setAttribute("data-theme", next);
-  localStorage.setItem("theme", next);
-  themeToggle.textContent = next === "dark" ? "☀️" : "🌙";
-});
 
 // ============================
 // Users panel
@@ -203,7 +187,48 @@ function showLoader() { roomLoaderEl.style.display = "flex"; messagesEl.style.di
 function hideLoader() { roomLoaderEl.style.display = "none"; messagesEl.style.display = "flex"; }
 
 // ============================
-// Render user list
+// Render global presence (constellation panel)
+// ============================
+function renderPresence(users) {
+  cPresenceList.innerHTML = "";
+  users.forEach((u) => {
+    const li = document.createElement("li");
+    li.className = "c-presence-item";
+
+    if (u.avatar) {
+      const img = document.createElement("img");
+      img.src = u.avatar; img.className = "c-presence-avatar"; img.alt = u.username;
+      li.appendChild(img);
+    } else {
+      const ph = document.createElement("div");
+      ph.className = "c-presence-avatar-ph";
+      ph.textContent = u.username[0].toUpperCase();
+      li.appendChild(ph);
+    }
+
+    const info = document.createElement("div");
+    info.className = "c-presence-info";
+
+    const name = document.createElement("span");
+    name.className = "c-presence-name" + (u.isAdmin ? " is-admin" : "");
+    name.textContent = u.username;
+    if (u.color) name.style.color = u.color;
+    info.appendChild(name);
+
+    if (u.room) {
+      const room = document.createElement("span");
+      room.className = "c-presence-room";
+      room.textContent = u.room;
+      info.appendChild(room);
+    }
+
+    li.appendChild(info);
+    cPresenceList.appendChild(li);
+  });
+}
+
+// ============================
+// Render user list (room-specific, right panel)
 // ============================
 function renderUsers(users) {
   onlineCount.textContent = users.length;
@@ -644,6 +669,7 @@ socket.on("new_message", (msg) => {
 
 socket.on("system_message", ({ text }) => appendSystem(text));
 socket.on("user_list", (users) => renderUsers(users));
+socket.on("global_user_list", renderPresence);
 
 socket.on("user_typing", ({ username, isTyping }) => {
   if (username === me?.username) return;

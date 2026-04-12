@@ -13,6 +13,17 @@ function getUsersInRoom(roomName) {
   }).filter(Boolean);
 }
 
+// All connected users across every room — for the global presence panel
+function getGlobalUserList() {
+  return [...socketUsers.values()].map(u => ({
+    username: u.username,
+    avatar:   u.avatar,
+    color:    u.color,
+    isAdmin:  u.isAdmin,
+    room:     u.roomName,
+  }));
+}
+
 module.exports = function registerSocketHandlers(io) {
   io.on("connection", (socket) => {
     const session = socket.request.session;
@@ -57,6 +68,7 @@ module.exports = function registerSocketHandlers(io) {
         at: new Date().toISOString(),
       });
       io.to(roomName).emit("user_list", getUsersInRoom(roomName));
+      io.emit("global_user_list", getGlobalUserList());
     });
 
     // --- send_message ---
@@ -111,6 +123,7 @@ module.exports = function registerSocketHandlers(io) {
         });
         io.to(user.roomName).emit("user_list", getUsersInRoom(user.roomName));
       }
+      io.emit("global_user_list", getGlobalUserList());
     });
   });
 };

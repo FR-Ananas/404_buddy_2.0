@@ -31,7 +31,6 @@
           <span class="users-dot">◉</span>
           <span id="onlineCount">0</span>
         </button>
-        <button class="icon-btn" id="themeToggle" title="Changer le thème">🌙</button>
       </div>
     </header>
 
@@ -79,6 +78,13 @@
 
   <!-- Constellation overlay (room selector) -->
   <div class="constellation-overlay" id="constellationOverlay" style="display:none">
+
+    <!-- Global presence panel (left) -->
+    <div class="c-presence" id="cPresence">
+      <div class="c-presence-header">◉ Connectés</div>
+      <ul class="c-presence-list" id="cPresenceList"></ul>
+    </div>
+
     <!-- Scrollable canvas: viewport-sized on desktop, larger on mobile for panning -->
     <div class="constellation-scroll" id="constellationScroll">
       <svg class="constellation-svg" id="constellationSvg" aria-hidden="true"></svg>
