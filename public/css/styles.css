@@ -1,7 +1,7 @@
 /* ============================
    Fonts
    ============================ */
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Josefin+Sans:wght@300;400;600&display=swap');
 
 /* ============================
    CSS Variables
@@ -46,7 +46,8 @@
   --users-panel-w:  220px;
   --header-h:       52px;
 
-  --font: "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font:       "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-brand: "Josefin Sans", sans-serif;
 }
 
 [data-theme="dark"] {
@@ -93,31 +94,41 @@ html, body {
 }
 
 /* ============================
-   Logo images
+   Brand mark (header)
    ============================ */
-
-/* Auth page — always dark bg → invert to white mark */
-.auth-logo-img {
-  height: 88px;
-  width: auto;
-  display: block;
-  margin: 0 auto;
-  filter: invert(1);
-  opacity: .88;
-}
-
-/* Chat header — light bg: multiply removes white; dark bg: invert */
-.header-logo {
-  height: 30px;
-  width: auto;
+.brand-mark {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  color: inherit;
   flex-shrink: 0;
-  mix-blend-mode: multiply;
-  display: block;
 }
-[data-theme="dark"] .header-logo {
+.brand-bar {
+  width: 1.5px;
+  height: 1.2rem;
+  background: currentColor;
+  border-radius: 1px;
+  flex-shrink: 0;
+}
+.brand-name {
+  font-family: var(--font-brand);
+  font-size: .875rem;
+  font-weight: 600;
+  letter-spacing: .18em;
+  color: inherit;
+}
+
+/* ============================
+   Logo (auth page, above card)
+   ============================ */
+/* The PNG has large internal whitespace — displayed large so the mark reads well.
+   filter: invert(1) turns charcoal→cream against the dark page background. */
+.auth-page-logo {
+  height: 150px;
+  width: auto;
   filter: invert(1);
-  mix-blend-mode: normal;
   opacity: .82;
+  flex-shrink: 0;
 }
 
 /* ============================
@@ -125,30 +136,22 @@ html, body {
    ============================ */
 .auth-page {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 1.25rem;
   min-height: 100vh;
+  padding: 2rem 1rem;
   background: #1a1816;
 }
 
 .auth-card {
   background: #221f1c;
   border-radius: var(--radius-lg);
-  padding: 2.5rem 2rem;
+  padding: 2.25rem 2rem;
   width: 100%;
   max-width: 400px;
   box-shadow: 0 8px 40px rgba(0,0,0,.5);
-}
-
-.auth-logo {
-  text-align: center;
-  margin-bottom: 2rem;
-}
-.auth-tagline {
-  margin-top: .75rem;
-  font-size: .8125rem;
-  color: #7a7268;
-  letter-spacing: .04em;
 }
 
 .auth-tabs {
@@ -588,7 +591,10 @@ input[type="file"] { display: none; }
   gap: .25rem;
   flex-shrink: 0;
 }
-.header-start { gap: .5rem; }
+.header-start {
+  gap: .5rem;
+  color: var(--text-muted);
+}
 .chat-header-info {
   flex: 1;
   display: flex;
