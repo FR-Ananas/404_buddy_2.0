@@ -9,30 +9,11 @@
 </head>
 <body class="chat-page">
 
-  <!-- Rooms panel (left) -->
-  <aside class="sidebar" id="sidebar">
-    <div class="sidebar-inner">
-      <div class="sidebar-section">
-        <div class="sidebar-label-row">
-          <h3 class="sidebar-label">Salons</h3>
-          <button class="icon-btn admin-only" id="addRoomBtn" title="Créer un salon" style="display:none">＋</button>
-        </div>
-        <ul class="room-list" id="roomList"></ul>
-      </div>
-
-      <div class="sidebar-footer">
-        <img class="self-avatar" id="selfAvatar" src="" alt="" style="display:none" />
-        <span class="self-name" id="selfName">...</span>
-        <button class="icon-btn danger" id="logoutBtn" title="Se déconnecter">⏻</button>
-      </div>
-    </div>
-  </aside>
-
-  <!-- Main area -->
+  <!-- Main area (full width — no sidebar) -->
   <div class="chat-layout">
     <header class="chat-header">
       <div class="header-start">
-        <button class="icon-btn" id="sidebarToggle" title="Salons">☰</button>
+        <button class="icon-btn" id="constellationToggle" title="Salons">⬡</button>
         <div class="brand-mark">
           <div class="brand-bar"></div>
           <span class="brand-name">aeglane</span>
@@ -85,11 +66,26 @@
         <button class="icon-btn" id="usersPanelClose" title="Fermer">✕</button>
       </div>
       <ul class="user-list" id="userList"></ul>
+      <div class="users-panel-footer">
+        <img class="self-avatar" id="selfAvatar" src="" alt="" style="display:none" />
+        <span class="self-name" id="selfName">...</span>
+        <button class="icon-btn danger" id="logoutBtn" title="Se déconnecter">⏻</button>
+      </div>
     </div>
   </div>
 
-  <!-- Panel backdrop (mobile overlay close) -->
+  <!-- Panel backdrop (mobile) -->
   <div class="panel-backdrop" id="panelBackdrop"></div>
+
+  <!-- Constellation overlay (room selector) -->
+  <div class="constellation-overlay" id="constellationOverlay" style="display:none">
+    <svg class="constellation-svg" id="constellationSvg" aria-hidden="true"></svg>
+    <div class="constellation-nodes" id="constellationNodes"></div>
+    <div class="constellation-ui">
+      <button class="constellation-add admin-only" id="constellationAdd" style="display:none">＋ Nouveau salon</button>
+      <button class="constellation-close-btn" id="constellationClose" title="Fermer">✕</button>
+    </div>
+  </div>
 
   <!-- Lightbox -->
   <div class="lightbox" id="lightbox" style="display:none">
