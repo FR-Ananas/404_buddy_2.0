@@ -800,9 +800,58 @@ input[type="file"] { display: none; }
 }
 .constellation-scroll::-webkit-scrollbar { display: none; }
 
+/* Zoom wrapper — sized by JS, pinch-to-zoom scales it */
+#constellationZoom {
+  position: absolute;
+  top: 0; left: 0;
+  transform-origin: 0 0;
+}
+
+/* Presence toggle button — hidden on desktop, shown on mobile */
+.c-presence-toggle-btn {
+  display: none;
+  align-items: center;
+  gap: .4rem;
+  padding: .4rem .8rem;
+  background: rgba(120, 72, 240, .12);
+  border: 1px solid rgba(120, 72, 240, .28);
+  border-radius: var(--radius);
+  color: rgba(196, 181, 253, .85);
+  font-family: var(--font);
+  font-size: .8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+}
+.c-presence-toggle-btn:hover,
+.c-presence-toggle-btn.active {
+  background: rgba(120, 72, 240, .24);
+  border-color: rgba(120, 72, 240, .55);
+  color: #ddd6fe;
+}
+
 @media (max-width: 640px) {
-  .c-presence { display: none; }
-  .constellation-scroll { left: 0; }
+  /* Presence panel: slides in from the left */
+  .c-presence {
+    display: flex;
+    transform: translateX(-100%);
+    transition: transform .3s cubic-bezier(.4, 0, .2, 1);
+  }
+  .c-presence.open {
+    transform: translateX(0);
+  }
+  /* Constellation canvas: pushes right when presence is open */
+  .constellation-scroll {
+    left: 0;
+    transition: transform .3s cubic-bezier(.4, 0, .2, 1);
+  }
+  .constellation-scroll.presence-open {
+    transform: translateX(var(--c-presence-w));
+  }
+  /* Show the toggle button on mobile */
+  .c-presence-toggle-btn {
+    display: flex;
+  }
 }
 
 /* SVG layer — stars + connection lines; size set by JS */
