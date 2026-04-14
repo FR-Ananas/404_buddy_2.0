@@ -800,13 +800,6 @@ input[type="file"] { display: none; }
 }
 .constellation-scroll::-webkit-scrollbar { display: none; }
 
-/* Zoom wrapper — sized by JS, pinch-to-zoom scales it */
-#constellationZoom {
-  position: absolute;
-  top: 0; left: 0;
-  transform-origin: 0 0;
-}
-
 /* Presence toggle button — hidden on desktop, shown on mobile */
 .c-presence-toggle-btn {
   display: none;

@@ -9,9 +9,6 @@ let currentRoom = null;
 let typingTimeout = null;
 const typingUsers = new Map();
 let constellationPositions = []; // positions from last renderConstellation call
-let cZoom = 1;           // current pinch-zoom level for constellation
-let cPinchDist0 = null;  // initial finger distance when pinch starts
-let cZoom0 = 1;          // zoom level at pinch start
 
 const MAX_ROOMS = 30; // max rooms displayed + creatable
 
@@ -50,7 +47,6 @@ const createRoomError      = $("createRoomError");
 const charCounter          = $("charCounter");
 const constellationOverlay = $("constellationOverlay");
 const constellationScroll  = $("constellationScroll");
-const constellationZoom    = $("constellationZoom");
 const constellationToggle  = $("constellationToggle");
 const constellationClose   = $("constellationClose");
 const constellationAdd     = $("constellationAdd");
@@ -468,9 +464,7 @@ function renderConstellation(opts = {}) {
   const CVW = MOBILE ? Math.max(vw, 1000) : vw;
   const CVH = MOBILE ? Math.max(vh, 1000) : vh;
 
-  // Size the zoom wrapper and its children to the virtual canvas
-  constellationZoom.style.width   = CVW + "px";
-  constellationZoom.style.height  = CVH + "px";
+  // Size the SVG and nodes container to the virtual canvas
   constellationSvg.style.width    = CVW + "px";
   constellationSvg.style.height   = CVH + "px";
   constellationNodes.style.width  = CVW + "px";
@@ -616,15 +610,7 @@ function closeCPresence() {
   cPresenceToggle.classList.remove("active");
 }
 
-function setCZoom(z) {
-  cZoom = Math.max(0.4, Math.min(4, z));
-  constellationZoom.style.zoom = cZoom;
-}
-
 function openConstellation() {
-  // Reset zoom and presence panel
-  cZoom = 1;
-  constellationZoom.style.zoom = "";
   closeCPresence();
   renderConstellation();
   constellationOverlay.style.display = "";
@@ -656,33 +642,6 @@ constellationScroll.addEventListener("click", (e) => {
     return;
   }
   if (e.target === constellationScroll && window.innerWidth >= 768) closeConstellation();
-});
-
-// Pinch-to-zoom on mobile constellation
-constellationScroll.addEventListener("touchstart", (e) => {
-  if (e.touches.length === 2) {
-    cPinchDist0 = Math.hypot(
-      e.touches[0].clientX - e.touches[1].clientX,
-      e.touches[0].clientY - e.touches[1].clientY
-    );
-    cZoom0 = cZoom;
-    e.preventDefault();
-  }
-}, { passive: false });
-
-constellationScroll.addEventListener("touchmove", (e) => {
-  if (e.touches.length === 2 && cPinchDist0 !== null) {
-    const dist = Math.hypot(
-      e.touches[0].clientX - e.touches[1].clientX,
-      e.touches[0].clientY - e.touches[1].clientY
-    );
-    setCZoom(cZoom0 * (dist / cPinchDist0));
-    e.preventDefault();
-  }
-}, { passive: false });
-
-constellationScroll.addEventListener("touchend", () => {
-  if (cPinchDist0 !== null) cPinchDist0 = null;
 });
 
 // Close on Escape
